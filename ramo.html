@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ramo de Girasoles</title>
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      font-family: 'Georgia', serif;
+      overflow-x: hidden;
+      background: linear-gradient(180deg,
+        #87CEEB 0%,
+        #FDB97D 55%,
+        #F4A261 75%,
+        #8B6914 100%
+      );
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding-bottom: 20px;
+    }
+
+    /* ===== SOL DECORATIVO ===== */
+    .sun {
+      position: fixed;
+      top: 30px;
+      right: 80px;
+      width: 90px;
+      height: 90px;
+      background: radial-gradient(circle, #FFE066 40%, #FFB300 100%);
+      border-radius: 50%;
+      box-shadow: 0 0 40px 20px rgba(255,200,0,0.45);
+      animation: sunPulse 4s ease-in-out infinite;
+      z-index: 0;
+    }
+    @keyframes sunPulse {
+      0%,100% { box-shadow: 0 0 40px 20px rgba(255,200,0,0.45); }
+      50%      { box-shadow: 0 0 70px 35px rgba(255,200,0,0.65); }
+    }
+
+    /* ===== NUBES ===== */
+    .cloud {
+      position: fixed;
+      background: rgba(255,255,255,0.75);
+      border-radius: 50px;
+      z-index: 0;
+    }
+    .cloud::before, .cloud::after {
+      content: '';
+      position: absolute;
+      background: rgba(255,255,255,0.75);
+      border-radius: 50%;
+    }
+    .cloud-1 { width:120px; height:40px; top:60px; left:60px; animation: drift 18s linear infinite; }
+    .cloud-1::before { width:60px; height:60px; top:-30px; left:15px; }
+    .cloud-1::after  { width:40px; height:40px; top:-20px; left:55px; }
+    .cloud-2 { width:90px; height:30px; top:100px; left:280px; animation: drift 25s linear infinite 5s; }
+    .cloud-2::before { width:45px; height:45px; top:-22px; left:10px; }
+    .cloud-2::after  { width:30px; height:30px; top:-15px; left:42px; }
+    @keyframes drift {
+      from { transform: translateX(-200px); }
+      to   { transform: translateX(110vw); }
+    }
+
+    /* ===== TÍTULO ===== */
+    .titulo {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      color: #fff;
+      text-shadow: 0 2px 8px rgba(100,60,0,0.5);
+      margin-bottom: 10px;
+      animation: fadeDown 1s ease both;
+    }
+    .titulo h1 { font-size: clamp(1.6rem, 4vw, 2.8rem); letter-spacing: 2px; }
+    .titulo p  { font-size: clamp(0.85rem, 2vw, 1.1rem); opacity: 0.9; margin-top: 4px; }
+    @keyframes fadeDown {
+      from { opacity:0; transform: translateY(-30px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+
+    /* ===== CONTENEDOR DEL RAMO ===== */
+    .ramo-wrapper {
+      position: relative;
+      z-index: 2;
+      width: min(700px, 96vw);
+      height: clamp(480px, 70vw, 680px);
+      margin: 0 auto;
+    }
+
+    /* ===== TALLOS DEL RAMO (SVG) ===== */
+    .tallos-svg {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* ===== LAZO ===== */
+    .lazo {
+      position: absolute;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 3;
+      pointer-events: none;
+    }
+    .lazo svg { width: clamp(80px,18vw,130px); }
+
+    /* ===== GIRASOL ===== */
+    .girasol {
+      position: absolute;
+      cursor: pointer;
+      z-index: 4;
+      transform-origin: center bottom;
+      animation: aparecer 0.8s ease both, balanceo 4s ease-in-out infinite;
+      transition: filter 0.25s, transform 0.25s;
+    }
+    .girasol:hover {
+      filter: brightness(1.18) drop-shadow(0 0 12px rgba(255,200,0,0.8));
+      transform: scale(1.13) translateY(-6px);
+      animation-play-state: paused;
+      z-index: 10;
+    }
+    @keyframes aparecer {
+      from { opacity:0; transform: scale(0.3) translateY(40px); }
+      to   { opacity:1; transform: scale(1) translateY(0); }
+    }
+    @keyframes balanceo {
+      0%,100% { transform: rotate(-2deg); }
+      50%      { transform: rotate(2deg); }
+    }
+
+    /* SVG del girasol */
+    .girasol svg { display: block; }
+
+    /* La rotación de pétalos se maneja con animateTransform SVG nativo */
+
+    /* ===== MODAL ===== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(80,40,0,0.45);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .modal-overlay.activo {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .modal-card {
+      background: linear-gradient(135deg, #FFF8E7 0%, #FFE0A0 100%);
+      border-radius: 24px;
+      padding: 40px 36px 32px;
+      max-width: min(420px, 90vw);
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(120,60,0,0.35), 0 2px 8px rgba(0,0,0,0.1);
+      transform: scale(0.7) translateY(40px);
+      transition: transform 0.35s cubic-bezier(.34,1.56,.64,1), opacity 0.3s;
+      opacity: 0;
+      position: relative;
+    }
+    .modal-overlay.activo .modal-card {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
+    .modal-emoji { font-size: 3rem; margin-bottom: 12px; animation: bounce 0.6s ease 0.3s both; }
+    @keyframes bounce {
+      0%   { transform: scale(0); }
+      60%  { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+    .modal-titulo {
+      font-size: 1.3rem;
+      color: #7B3F00;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    .modal-mensaje {
+      font-size: 1.05rem;
+      color: #5C3317;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    .modal-btn {
+      background: linear-gradient(135deg, #F4A261, #E76F51);
+      color: #fff;
+      border: none;
+      border-radius: 50px;
+      padding: 12px 36px;
+      font-size: 1rem;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(231,111,81,0.5);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .modal-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(231,111,81,0.6);
+    }
+    .modal-destellos {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: 24px;
+      overflow: hidden;
+    }
+    .destello {
+      position: absolute;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #FFD700;
+      animation: destellar 1s ease forwards;
+    }
+    @keyframes destellar {
+      0%   { transform: scale(0); opacity:1; }
+      100% { transform: scale(3) translate(var(--dx), var(--dy)); opacity:0; }
+    }
+
+    /* ===== PASTO (reemplazado por hierba SVG) ===== */
+
+    /* ===== PÁJAROS ===== */
+    .pajaro {
+      position: fixed;
+      z-index: 1;
+      opacity: 0.7;
+      animation: volarPajaro linear infinite;
+    }
+    .pajaro svg { width: 28px; }
+    .pajaro-1 { top: 12%; animation-duration: 22s; animation-delay: 0s; }
+    .pajaro-2 { top: 18%; animation-duration: 30s; animation-delay: 8s; }
+    .pajaro-3 { top: 8%;  animation-duration: 26s; animation-delay: 14s; }
+    @keyframes volarPajaro {
+      0%   { left: -60px; transform: scaleX(1); }
+      49%  { left: 110vw; transform: scaleX(1); }
+      50%  { left: 110vw; transform: scaleX(-1); }
+      100% { left: -60px; transform: scaleX(-1); }
+    }
+
+    /* ===== MARIPOSAS ===== */
+    .mariposa {
+      position: fixed;
+      z-index: 2;
+      pointer-events: none;
+      animation: volarMariposa ease-in-out infinite;
+    }
+    .mariposa svg { width: 22px; }
+    .mariposa-1 { animation-duration: 14s; animation-delay: 2s; }
+    .mariposa-2 { animation-duration: 18s; animation-delay: 7s; }
+    .mariposa-3 { animation-duration: 11s; animation-delay: 0s; }
+    @keyframes volarMariposa {
+      0%   { left: 5%;  top: 70%; opacity: 0; }
+      10%  { opacity: 0.9; }
+      30%  { left: 25%; top: 40%; }
+      50%  { left: 55%; top: 55%; }
+      70%  { left: 75%; top: 30%; }
+      90%  { opacity: 0.9; }
+      100% { left: 95%; top: 65%; opacity: 0; }
+    }
+    .ala {
+      transform-origin: center;
+      animation: aletear 0.4s ease-in-out infinite alternate;
+    }
+    @keyframes aletear {
+      from { transform: scaleY(1); }
+      to   { transform: scaleY(0.3); }
+    }
+
+    /* ===== PARTÍCULAS DE LUZ ===== */
+    .particulas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      overflow: hidden;
+    }
+    .particula {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,230,100,0.9), rgba(255,180,0,0));
+      animation: flotar ease-in-out infinite;
+    }
+    @keyframes flotar {
+      0%   { transform: translateY(0) scale(1);   opacity: 0; }
+      20%  { opacity: 1; }
+      80%  { opacity: 0.6; }
+      100% { transform: translateY(-120px) scale(0.4); opacity: 0; }
+    }
+
+    /* ===== HIERBA DETALLADA ===== */
+    .hierba {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 80px;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    /* ===== CONTADOR ===== */
+    .contador {
+      position: fixed;
+      top: 20px;
+      left: 24px;
+      z-index: 10;
+      background: rgba(255,255,255,0.18);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 50px;
+      padding: 8px 18px;
+      color: #fff;
+      font-size: 0.9rem;
+      text-shadow: 0 1px 4px rgba(80,40,0,0.5);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      transition: transform 0.3s;
+    }
+    .contador span { font-size: 1.1rem; font-weight: bold; }
+    .contador.bump { animation: bump 0.4s ease; }
+    @keyframes bump {
+      0%,100% { transform: scale(1); }
+      50%      { transform: scale(1.2); }
+    }
+
+    /* ===== MARCO TÍTULO ===== */
+    .titulo-marco {
+      position: relative;
+      z-index: 2;
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 20px;
+      padding: 14px 32px 10px;
+      margin-bottom: 14px;
+      box-shadow: 0 8px 32px rgba(120,60,0,0.2);
+    }
+    .titulo-marco::before, .titulo-marco::after {
+      content: '✦';
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255,220,80,0.8);
+      font-size: 1.2rem;
+    }
+    .titulo-marco::before { left: 10px; }
+    .titulo-marco::after  { right: 10px; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 500px) {
+      .ramo-wrapper { height: clamp(360px, 90vw, 480px); }
+      .contador { top: 12px; left: 12px; font-size: 0.8rem; padding: 6px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Decoración fondo -->
+  <div class="sun"></div>
+  <div class="cloud cloud-1"></div>
+  <div class="cloud cloud-2"></div>
+
+  <!-- Pájaros -->
+  <div class="pajaro pajaro-1">
+    <svg viewBox="0 0 40 20" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,10 Q10,0 20,10 Q30,0 40,10" stroke="#5C3317" stroke-width="2" fill="none"/>
+    </svg>
+  </div>
+  <div class="pajaro pajaro-2">
+    <svg viewBox="0 0 40 20" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,10 Q10,2 20,10 Q30,2 40,10" stroke="#7B4F2E" stroke-width="2" fill="none"/>
+    </svg>
+  </div>
+  <div class="pajaro pajaro-3">
+    <svg viewBox="0 0 30 15" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,8 Q7,0 15,8 Q22,0 30,8" stroke="#5C3317" stroke-width="1.5" fill="none"/>
+    </svg>
+  </div>
+
+  <!-- Mariposas -->
+  <div class="mariposa mariposa-1">
+    <svg viewBox="0 0 40 30" xmlns="http://www.w3.org/2000/svg">
+      <g class="ala">
+        <ellipse cx="10" cy="12" rx="10" ry="8" fill="rgba(255,160,50,0.75)"/>
+        <ellipse cx="30" cy="12" rx="10" ry="8" fill="rgba(255,100,50,0.75)"/>
+        <ellipse cx="12" cy="20" rx="7"  ry="5" fill="rgba(255,200,80,0.6)"/>
+        <ellipse cx="28" cy="20" rx="7"  ry="5" fill="rgba(255,150,60,0.6)"/>
+      </g>
+      <line x1="20" y1="5" x2="20" y2="25" stroke="#5C3317" stroke-width="1.5"/>
+    </svg>
+  </div>
+  <div class="mariposa mariposa-2">
+    <svg viewBox="0 0 40 30" xmlns="http://www.w3.org/2000/svg">
+      <g class="ala">
+        <ellipse cx="10" cy="12" rx="10" ry="8" fill="rgba(200,100,200,0.7)"/>
+        <ellipse cx="30" cy="12" rx="10" ry="8" fill="rgba(180,80,220,0.7)"/>
+        <ellipse cx="12" cy="20" rx="7"  ry="5" fill="rgba(220,140,240,0.55)"/>
+        <ellipse cx="28" cy="20" rx="7"  ry="5" fill="rgba(200,100,220,0.55)"/>
+      </g>
+      <line x1="20" y1="5" x2="20" y2="25" stroke="#5C3317" stroke-width="1.5"/>
+    </svg>
+  </div>
+  <div class="mariposa mariposa-3">
+    <svg viewBox="0 0 40 30" xmlns="http://www.w3.org/2000/svg">
+      <g class="ala">
+        <ellipse cx="10" cy="12" rx="10" ry="8" fill="rgba(100,200,100,0.7)"/>
+        <ellipse cx="30" cy="12" rx="10" ry="8" fill="rgba(80,180,80,0.7)"/>
+        <ellipse cx="12" cy="20" rx="7"  ry="5" fill="rgba(140,220,100,0.55)"/>
+        <ellipse cx="28" cy="20" rx="7"  ry="5" fill="rgba(100,200,80,0.55)"/>
+      </g>
+      <line x1="20" y1="5" x2="20" y2="25" stroke="#5C3317" stroke-width="1.5"/>
+    </svg>
+  </div>
+
+  <!-- Partículas de luz -->
+  <div class="particulas" id="particulas"></div>
+
+  <!-- Hierba SVG detallada -->
+  <div class="hierba">
+    <svg viewBox="0 0 1440 80" preserveAspectRatio="none" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+      <rect width="1440" height="80" fill="#3B6E22"/>
+      <path d="M0,80 Q30,20 60,80 Q90,20 120,80 Q150,20 180,80 Q210,20 240,80 Q270,20 300,80
+               Q330,20 360,80 Q390,20 420,80 Q450,20 480,80 Q510,20 540,80 Q570,20 600,80
+               Q630,20 660,80 Q690,20 720,80 Q750,20 780,80 Q810,20 840,80 Q870,20 900,80
+               Q930,20 960,80 Q990,20 1020,80 Q1050,20 1080,80 Q1110,20 1140,80 Q1170,20 1200,80
+               Q1230,20 1260,80 Q1290,20 1320,80 Q1350,20 1380,80 Q1410,20 1440,80 Z"
+            fill="#5D8A3C"/>
+      <!-- Briznas de hierba -->
+      <g stroke="#4A7C2F" stroke-width="1.5" fill="none" opacity="0.7">
+        <path d="M50,80 Q45,50 55,30"/>  <path d="M100,80 Q95,55 105,35"/>
+        <path d="M200,80 Q195,45 210,25"/> <path d="M300,80 Q295,50 305,30"/>
+        <path d="M400,80 Q395,55 410,35"/> <path d="M500,80 Q495,45 510,25"/>
+        <path d="M600,80 Q595,50 605,30"/> <path d="M700,80 Q695,55 710,35"/>
+        <path d="M800,80 Q795,45 810,25"/> <path d="M900,80 Q895,50 905,30"/>
+        <path d="M1000,80 Q995,55 1010,35"/><path d="M1100,80 Q1095,45 1110,25"/>
+        <path d="M1200,80 Q1195,50 1205,30"/><path d="M1350,80 Q1345,55 1360,35"/>
+      </g>
+    </svg>
+  </div>
+
+  <!-- Contador de girasoles descubiertos -->
+  <div class="contador" id="contador">🌻 <span id="cuentaNum">0</span> / 16 descubiertos</div>
+
+  <!-- Título -->
+  <div class="titulo">
+    <div class="titulo-marco">
+      <h1>🌻 Hola amor </h1>
+      <p>Haz clic en cada girasol amor y feliz dia mi vida </p>
+    </div>
+  </div>
+
+  <!-- Ramo -->
+  <div class="ramo-wrapper" id="ramo">
+
+    <!-- Tallos SVG -->
+    <svg class="tallos-svg" viewBox="0 0 700 680" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg">
+      <!-- Tallos principales curvados hacia el lazo central -->
+      <g stroke="#4A7C2F" stroke-linecap="round" fill="none">
+        <!-- tallo 1 centro -->
+        <path d="M350,620 Q350,500 350,320" stroke-width="7"/>
+        <!-- tallo 2 izq-centro -->
+        <path d="M350,620 Q320,520 280,340" stroke-width="6"/>
+        <!-- tallo 3 der-centro -->
+        <path d="M350,620 Q380,520 420,340" stroke-width="6"/>
+        <!-- tallo 4 izq -->
+        <path d="M350,620 Q290,510 210,360" stroke-width="5.5"/>
+        <!-- tallo 5 der -->
+        <path d="M350,620 Q410,510 490,360" stroke-width="5.5"/>
+        <!-- tallo 6 izq-ext -->
+        <path d="M350,620 Q270,500 160,390" stroke-width="5"/>
+        <!-- tallo 7 der-ext -->
+        <path d="M350,620 Q430,500 540,390" stroke-width="5"/>
+        <!-- tallo 8 izq-alto -->
+        <path d="M350,620 Q300,490 230,300" stroke-width="5"/>
+        <!-- tallo 9 der-alto -->
+        <path d="M350,620 Q400,490 470,300" stroke-width="5"/>
+        <!-- tallo 10 izq-bajo -->
+        <path d="M350,620 Q310,540 250,430" stroke-width="4.5"/>
+        <!-- tallo 11 der-bajo -->
+        <path d="M350,620 Q390,540 450,430" stroke-width="4.5"/>
+        <!-- tallo 12 centro-alto -->
+        <path d="M350,620 Q345,490 330,260" stroke-width="5"/>
+        <!-- tallo 13 der-centro-alto -->
+        <path d="M350,620 Q365,490 380,260" stroke-width="5"/>
+        <!-- tallo 14 izq-ext-bajo -->
+        <path d="M350,620 Q280,560 180,470" stroke-width="4"/>
+        <!-- tallo 15 der-ext-bajo -->
+        <path d="M350,620 Q420,560 520,470" stroke-width="4"/>
+      </g>
+      <!-- Hojitas decorativas -->
+      <g fill="#5D8A3C" opacity="0.85">
+        <ellipse cx="300" cy="480" rx="18" ry="9" transform="rotate(-30 300 480)"/>
+        <ellipse cx="400" cy="480" rx="18" ry="9" transform="rotate(30 400 480)"/>
+        <ellipse cx="260" cy="420" rx="15" ry="7" transform="rotate(-45 260 420)"/>
+        <ellipse cx="440" cy="420" rx="15" ry="7" transform="rotate(45 440 420)"/>
+        <ellipse cx="220" cy="360" rx="14" ry="6" transform="rotate(-50 220 360)"/>
+        <ellipse cx="480" cy="360" rx="14" ry="6" transform="rotate(50 480 360)"/>
+        <ellipse cx="350" cy="400" rx="16" ry="7" transform="rotate(-10 350 400)"/>
+      </g>
+    </svg>
+
+    <!-- Lazo -->
+    <div class="lazo">
+      <svg viewBox="0 0 130 70" xmlns="http://www.w3.org/2000/svg">
+        <!-- cinta izquierda -->
+        <path d="M65,35 Q30,10 10,20 Q30,35 65,35" fill="#E76F51"/>
+        <path d="M65,35 Q30,50 10,45 Q30,40 65,35" fill="#C1440E"/>
+        <!-- cinta derecha -->
+        <path d="M65,35 Q100,10 120,20 Q100,35 65,35" fill="#E76F51"/>
+        <path d="M65,35 Q100,50 120,45 Q100,40 65,35" fill="#C1440E"/>
+        <!-- nudo -->
+        <ellipse cx="65" cy="35" rx="10" ry="8" fill="#F4A261"/>
+        <ellipse cx="65" cy="35" rx="6" ry="5" fill="#E76F51"/>
+        <!-- cintas colgantes -->
+        <path d="M60,40 Q55,55 50,68" stroke="#E76F51" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M70,40 Q75,55 80,68" stroke="#C1440E" stroke-width="4" fill="none" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+  </div><!-- fin ramo-wrapper -->
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitulo">
+    <div class="modal-card" id="modalCard">
+      <div class="modal-destellos" id="modalDestellos"></div>
+      <div class="modal-emoji" id="modalEmoji">🌻</div>
+      <div class="modal-titulo" id="modalTitulo">Girasol</div>
+      <p class="modal-mensaje" id="modalMensaje"></p>
+    </div>
+  </div>
+
+  <script>
+    // ===== DATOS DE LOS GIRASOLES =====
+    // Cada girasol tiene: posición (% desde izq/abajo), tamaño, delay de animación y mensaje
+    const girasoles = [
+      // [left%, bottom%, size_px, delay_s, emoji, titulo, mensaje]
+      [46, 52, 110, 0.0, "🌻", "Girasol del Centro",    "Eres el diseño más perfecto que la vida creó para mí."],
+      [36, 46, 100, 0.1, "✨", "Girasol de la Alegría", "Tu creatividad ilumina mi mundo más que cualquier color."],
+      [56, 46, 100, 0.2, "💛", "Girasol del Amor",      "Si fueras un diseño, serías mi obra favorita."],
+      [26, 40, 92,  0.3, "🌟", "Girasol de la Fuerza",  "Así como das vida a tus ideas, le das vida a mi corazón."],
+      [66, 40, 92,  0.4, "🦋", "Girasol de la Libertad","Eres el mejor proyecto que jamás quisiera terminar."],
+      [18, 35, 85,  0.5, "🌈", "Girasol de la Esperanza","Tu talento me enamora tanto como tu sonrisa."],
+      [74, 35, 85,  0.6, "🎶", "Girasol de la Música",  "Eres arte en cada detalle."],
+      [30, 28, 88,  0.7, "🌺", "Girasol de la Belleza", "Si el amor fuera diseño, tú serías la versión final perfecta."],
+      [62, 28, 88,  0.8, "💪", "Girasol del Valor",     "Contigo todo tiene mejor composición."],
+      [22, 22, 80,  0.9, "🍀", "Girasol de la Suerte",  "Eres mi inspiración diaria, diseñadora hermosa."],
+      [70, 22, 80,  1.0, "🌙", "Girasol de los Sueños", "No necesitas retoques, eres perfecta tal como eres."],
+      [46, 18, 95,  1.1, "🔥", "Girasol de la Pasión",  "Tu creatividad hace más bonito mi mundo."],
+      [12, 28, 75,  1.2, "🎯", "Girasol del Propósito", "Eres el mejor ‘match de colores’ en mi vida"],
+      [80, 28, 75,  1.3, "🌊", "Girasol de la Calma",   "Mi corazón te eligió sin necesidad de bocetos."],
+      [38, 12, 82,  1.4, "💎", "Girasol de lo Único",   "Eres irrepetible. No hay nadie en el universo exactamente como tú. Eso es un regalo."],
+      [54, 12, 82,  1.5, "🚀", "Girasol del Futuro",    "Contigo sí quiero trabajar en equipo toda la vida"],
+    ];
+
+    // ===== FUNCIÓN PARA CREAR EL SVG DE UN GIRASOL =====
+    // Usa animateTransform SVG nativo para rotar sobre el origen (0,0) = centro exacto
+    function crearGirasolSVG(size, idx) {
+      const r = size / 2;
+      const nPetalos = 16;
+      const dur = 7 + (idx % 5);  // duración variada por girasol
+
+      // Pétalos externos
+      let petalos = '';
+      for (let i = 0; i < nPetalos; i++) {
+        const ang = (360 / nPetalos) * i;
+        petalos += `<ellipse cx="0" cy="${-r * 0.62}" rx="${r * 0.18}" ry="${r * 0.38}"
+          fill="url(#pg${idx})" transform="rotate(${ang})" opacity="0.95"/>`;
+      }
+      // Pétalos internos (segunda capa, offset medio paso)
+      let petalos2 = '';
+      for (let i = 0; i < nPetalos; i++) {
+        const ang = (360 / nPetalos) * i + (360 / nPetalos / 2);
+        petalos2 += `<ellipse cx="0" cy="${-r * 0.55}" rx="${r * 0.13}" ry="${r * 0.28}"
+          fill="url(#pg2${idx})" transform="rotate(${ang})" opacity="0.8"/>`;
+      }
+
+      // Semillas del centro (posiciones fijas, no rotan)
+      const semillas = [
+        [-0.12,-0.12,0.06], [0.10,-0.08,0.05], [-0.05,0.13,0.06],
+        [0.14,0.10,0.05],   [0.00,-0.15,0.05], [-0.14,0.05,0.05],
+        [0.08,0.14,0.05],   [0.00,0.00,0.07]
+      ].map(([cx,cy,cr], i) =>
+        `<circle cx="${r*cx}" cy="${r*cy}" r="${r*cr}"
+          fill="${i===7 ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.22)'}"/>`
+      ).join('');
+
+      return `
+      <svg width="${size}" height="${size}" viewBox="${-r} ${-r} ${size} ${size}"
+           xmlns="http://www.w3.org/2000/svg" overflow="visible">
+        <defs>
+          <radialGradient id="pg${idx}" cx="50%" cy="80%" r="60%">
+            <stop offset="0%" stop-color="#FFE066"/>
+            <stop offset="100%" stop-color="#F4A261"/>
+          </radialGradient>
+          <radialGradient id="pg2${idx}" cx="50%" cy="80%" r="60%">
+            <stop offset="0%" stop-color="#FFD700"/>
+            <stop offset="100%" stop-color="#E76F51"/>
+          </radialGradient>
+          <radialGradient id="cg${idx}" cx="40%" cy="35%" r="65%">
+            <stop offset="0%" stop-color="#8B5E3C"/>
+            <stop offset="60%" stop-color="#5C3317"/>
+            <stop offset="100%" stop-color="#3B1F0A"/>
+          </radialGradient>
+          <filter id="sombra${idx}">
+            <feDropShadow dx="2" dy="4" stdDeviation="4" flood-color="rgba(80,40,0,0.4)"/>
+          </filter>
+        </defs>
+
+        <!-- Grupo de pétalos: rota sobre (0,0) usando animateTransform nativo SVG -->
+        <g filter="url(#sombra${idx})">
+          ${petalos}
+          ${petalos2}
+          <animateTransform attributeName="transform" type="rotate"
+            from="0 0 0" to="360 0 0" dur="${dur}s" repeatCount="indefinite"/>
+        </g>
+
+        <!-- Centro fijo (no rota) -->
+        <circle cx="0" cy="0" r="${r * 0.38}" fill="url(#cg${idx})"/>
+        ${semillas}
+      </svg>`;
+    }
+
+    // ===== PARTÍCULAS DE LUZ =====
+    (function() {
+      const cont = document.getElementById('particulas');
+      for (let i = 0; i < 22; i++) {
+        const p = document.createElement('div');
+        p.className = 'particula';
+        const s = 4 + Math.random() * 10;
+        p.style.cssText = `
+          width:${s}px; height:${s}px;
+          left:${Math.random()*100}%;
+          bottom:${5 + Math.random()*40}%;
+          animation-duration:${3 + Math.random()*5}s;
+          animation-delay:${Math.random()*6}s;
+        `;
+        cont.appendChild(p);
+      }
+    })();
+
+    // ===== CONTADOR =====
+    const descubiertos = new Set();
+    const cuentaEl = document.getElementById('cuentaNum');
+    const contadorEl = document.getElementById('contador');
+
+    function actualizarContador(titulo) {
+      descubiertos.add(titulo);
+      cuentaEl.textContent = descubiertos.size;
+      contadorEl.classList.remove('bump');
+      void contadorEl.offsetWidth; // reflow para reiniciar animación
+      contadorEl.classList.add('bump');
+    }
+
+    // ===== RENDERIZAR GIRASOLES =====
+    const ramo = document.getElementById('ramo');
+
+    girasoles.forEach((g, idx) => {
+      const [left, bottom, size, delay, emoji, titulo, mensaje] = g;
+      const div = document.createElement('div');
+      div.className = 'girasol';
+      div.setAttribute('role', 'button');
+      div.setAttribute('tabindex', '0');
+      div.setAttribute('aria-label', titulo);
+      div.style.left   = `calc(${left}% - ${size/2}px)`;
+      div.style.bottom = `calc(${bottom}% - ${size/2}px)`;
+      div.style.width  = size + 'px';
+      div.style.height = size + 'px';
+      div.style.animationDelay = delay + 's, ' + (delay + 0.8) + 's';
+      // Variación de velocidad de balanceo por girasol
+      const duracion = 3.5 + (idx % 5) * 0.4;
+      div.style.animationDuration = `0.8s, ${duracion}s`;
+
+      div.innerHTML = crearGirasolSVG(size, idx);
+
+      // Evento clic
+      div.addEventListener('click', () => { abrirModal(emoji, titulo, mensaje); actualizarContador(titulo); });
+      div.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') abrirModal(emoji, titulo, mensaje); });
+
+      ramo.appendChild(div);
+    });
+
+    // ===== MODAL =====
+    const overlay   = document.getElementById('modalOverlay');
+    const emojiEl   = document.getElementById('modalEmoji');
+    const tituloEl  = document.getElementById('modalTitulo');
+    const mensajeEl = document.getElementById('modalMensaje');
+    const destellos = document.getElementById('modalDestellos');
+
+    function abrirModal(emoji, titulo, mensaje) {
+      emojiEl.textContent   = emoji;
+      tituloEl.textContent  = titulo;
+      mensajeEl.textContent = mensaje;
+      overlay.classList.add('activo');
+      crearDestellos();
+      // Foco al botón para accesibilidad
+      setTimeout(() => document.getElementById('modalBtn').focus(), 350);
+    }
+
+    function cerrarModal() {
+      overlay.classList.remove('activo');
+      destellos.innerHTML = '';
+    }
+
+    // Cerrar al hacer clic fuera de la tarjeta
+    overlay.addEventListener('click', e => { if (e.target === overlay) cerrarModal(); });
+    // Cerrar con Escape
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModal(); });
+
+    // ===== DESTELLOS VISUALES =====
+    function crearDestellos() {
+      destellos.innerHTML = '';
+      for (let i = 0; i < 12; i++) {
+        const d = document.createElement('div');
+        d.className = 'destello';
+        const x = 20 + Math.random() * 60;
+        const y = 20 + Math.random() * 60;
+        const dx = (Math.random() - 0.5) * 80 + 'px';
+        const dy = (Math.random() - 0.5) * 80 + 'px';
+        d.style.cssText = `left:${x}%;top:${y}%;--dx:${dx};--dy:${dy};
+          animation-delay:${Math.random()*0.3}s;
+          background:hsl(${40+Math.random()*30},100%,60%);`;
+        destellos.appendChild(d);
+      }
+    }
+  </script>
+</body>
+</html>
